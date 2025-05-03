@@ -253,7 +253,7 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({
                 <Button
                   className="bg-primary hover:bg-primary/90 text-white font-medium py-2 px-6 rounded-md transition-colors"
                   onClick={handleEndVoting}
-                  disabled={votedCount === 0}
+                  disabled={!isDisabled || votedCount === 0}
                 >
                   End Voting
                 </Button>
