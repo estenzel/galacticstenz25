@@ -30,7 +30,9 @@ const DefinitionPhase: React.FC<DefinitionPhaseProps> = ({
 }) => {
   const [definition, setDefinition] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isRealDefinition, setIsRealDefinition] = useState(false);
+  const [isRealDefinition, setIsRealDefinition] = useState(
+    currentPlayer?.submittedWord || false // Default to true if the player submitted the word
+  );
   const { toast } = useToast();
   const { isSpectator, hasPlayerSubmittedDefinition } = useGameStore();
   
