@@ -32,7 +32,8 @@ const Game: React.FC = () => {
     getVotes,
     getCurrentPlayer,
     isSpectator,
-    isAdmin
+    isAdmin,
+    isMysteryWordSubmitter,
   } = useGameStore();
 
   // Handle WebSocket messages
@@ -142,47 +143,6 @@ const Game: React.FC = () => {
             <div className="flex flex-wrap justify-center items-center gap-3 mt-2">
               {/* Leaderboard Component */}
               <Leaderboard />
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-sm flex items-center gap-1 bg-primary/5 text-primary border-primary/20"
-                onClick={() => {
-                  const shareUrl = `${window.location.origin}/game/${gameId}`;
-                  navigator.clipboard.writeText(shareUrl);
-                  toast({
-                    title: "Player link copied!",
-                    description: "Share this with friends so they can join your game as players.",
-                  });
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
-                  <polyline points="16 6 12 2 8 6"></polyline>
-                  <line x1="12" y1="2" x2="12" y2="15"></line>
-                </svg>
-                <span>Copy Player Link</span>
-              </Button>
-              
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="text-sm flex items-center gap-1 bg-primary/5 text-primary border-primary/20"
-                onClick={() => {
-                  const shareUrl = `${window.location.origin}/game/${gameId}?spectator=true`;
-                  navigator.clipboard.writeText(shareUrl);
-                  toast({
-                    title: "Spectator link copied!",
-                    description: "Share this with friends who want to watch the game without playing.",
-                  });
-                }}
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="2"></circle>
-                  <path d="M22 12c-2.667 4.667-6 7-10 7s-7.333-2.333-10-7c2.667-4.667 6-7 10-7s7.333 2.333 10 7"></path>
-                </svg>
-                <span>Copy Spectator Link</span>
-              </Button>
             </div>
           </div>
         )}
@@ -320,6 +280,7 @@ const Game: React.FC = () => {
             definitions={definitions}
             votes={votes}
             round={currentRound}
+            isDisabled={isMysteryWordSubmitter()} // Disable voting for mystery word submitter
           />
         )}
 

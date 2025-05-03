@@ -30,6 +30,7 @@ export interface IStorage {
   getPlayerBySessionId(sessionId: string): Promise<Player | undefined>;
   getPlayersByGameId(gameId: number): Promise<Player[]>;
   updatePlayerScore(id: number, scoreIncrement: number): Promise<Player>;
+  updatePlayerSubmittedWord(id: number, submittedWord: boolean): Promise<Player>;
   removePlayer(id: number): Promise<void>;
   
   // Definition methods
@@ -267,6 +268,20 @@ export class MemStorage implements IStorage {
     const updatedPlayer: Player = { 
       ...player, 
       score: player.score + scoreIncrement 
+    };
+    this.players.set(id, updatedPlayer);
+    return updatedPlayer;
+  }
+  
+  async updatePlayerSubmittedWord(id: number, submittedWord: boolean): Promise<Player> {
+    const player = await this.getPlayer(id);
+    if (!player) {
+      throw new Error(`Player with id ${id} not found`);
+    }
+    
+    const updatedPlayer: Player = { 
+      ...player, 
+      submittedWord 
     };
     this.players.set(id, updatedPlayer);
     return updatedPlayer;

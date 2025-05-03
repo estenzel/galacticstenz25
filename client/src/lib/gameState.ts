@@ -37,6 +37,7 @@ interface GameStateStore {
   hasPlayerSubmittedDefinition: () => boolean;
   hasPlayerVoted: () => boolean;
   getVotedDefinitionId: () => number | null;
+  isMysteryWordSubmitter: () => boolean;
 }
 
 export const useGameStore = create<GameStateStore>((set, get) => ({
@@ -142,5 +143,11 @@ export const useGameStore = create<GameStateStore>((set, get) => ({
       vote.round === currentRound
     );
     return playerVote ? playerVote.definitionId : null;
+  },
+
+  isMysteryWordSubmitter: () => {
+    const currentPlayer = get().getCurrentPlayer();
+    if (!currentPlayer) return false;
+    return currentPlayer.submittedWord;
   }
 }));

@@ -189,6 +189,8 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
               await storage.updateGameWord(gameId, parsed.payload.word.trim());
               // Update game phase to definitions
               await storage.updateGamePhase(gameId, 2);
+              // Mark the player's submittedWord as true
+              await storage.updatePlayerSubmittedWord(player.id, true);
               
               // Get updated game state for submitWord
               const gameState = await storage.getGameState(gameId, parsed.payload.round || 1);
@@ -374,6 +376,12 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
               
               console.log(`Player ${player.name} (ID: ${player.id}) ending voting phase`);
               
+              // Reset submittedWord for all players in the game
+              const players = await storage.getPlayersByGameId(gameId);
+              for (const player of players) {
+                await storage.updatePlayerSubmittedWord(player.id, false);
+              }
+              
               // Update game phase to results
               await storage.updateGamePhase(gameId, 4);
               
@@ -487,6 +495,12 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
               }
               
               console.log(`Admin ${player.name} (ID: ${player.id}) cancelling current round`);
+              
+              // Reset submittedWord for all players in the game
+              const players = await storage.getPlayersByGameId(gameId);
+              for (const player of players) {
+                await storage.updatePlayerSubmittedWord(player.id, false);
+              }
               
               // Use the cancelRound method to reset the game without incrementing round
               const updatedGame = await storage.cancelRound(gameId);

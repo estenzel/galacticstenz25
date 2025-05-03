@@ -16,6 +16,7 @@ interface VotingPhaseProps {
   players: Player[];
   definitions: Definition[];
   votes: Vote[];
+  isDisabled: boolean; // New prop to disable voting
 }
 
 const VotingPhase: React.FC<VotingPhaseProps> = ({
@@ -27,6 +28,7 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({
   players,
   definitions,
   votes,
+  isDisabled,
 }) => {
   const [shuffledDefinitions, setShuffledDefinitions] = useState<Definition[]>([]);
   const [votedDefinitionId, setVotedDefinitionId] = useState<number | null>(null);
@@ -184,14 +186,16 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({
                     ) : (
                       <Button
                         className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                          !hasVoted
+                          isDisabled
+                            ? "bg-gray-300 cursor-not-allowed"
+                            : !hasVoted
                             ? "bg-primary hover:bg-primary/90 text-white"
                             : isVoted
                             ? "bg-primary/20 text-primary cursor-default"
                             : "bg-gray-100 text-gray-400 cursor-not-allowed"
                         }`}
-                        onClick={() => !hasVoted && handleVote(definition.id)}
-                        disabled={hasVoted && !isVoted}
+                        onClick={() => !hasVoted && !isDisabled && handleVote(definition.id)}
+                        disabled={isDisabled || (hasVoted && !isVoted)}
                       >
                         {!hasVoted ? "Vote" : isVoted ? "Voted" : "Vote"}
                       </Button>

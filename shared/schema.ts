@@ -53,11 +53,13 @@ export const players = pgTable("players", {
   isAdmin: boolean("is_admin").notNull().default(false),
   isSpectator: boolean("is_spectator").notNull().default(false), // Keeping for backward compatibility
   score: integer("score").notNull().default(0),
+  submittedWord: boolean("submitted_word").notNull().default(false),
 });
 
 export const insertPlayerSchema = createInsertSchema(players).omit({
   id: true,
   score: true,
+  submittedWord: true,
 });
 
 export type InsertPlayer = z.infer<typeof insertPlayerSchema>;
