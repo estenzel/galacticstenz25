@@ -39,9 +39,20 @@ interface GameStateStore {
   getVotedDefinitionId: () => number | null;
 }
 
+// Helper to get or create a persistent session ID
+function getOrCreateSessionId(): string {
+  const existingId = localStorage.getItem("sessionId");
+  if (existingId) {
+    return existingId;
+  }
+  const newId = uuidv4();
+  localStorage.setItem("sessionId", newId);
+  return newId;
+}
+
 export const useGameStore = create<GameStateStore>((set, get) => ({
-  // Initialize with a random session ID if none exists
-  sessionId: localStorage.getItem("sessionId") || uuidv4(),
+  // Initialize with a random session ID if none exists (and save it to localStorage)
+  sessionId: getOrCreateSessionId(),
   gameState: null,
   wsConnected: false,
   

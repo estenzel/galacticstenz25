@@ -1,20 +1,21 @@
 import React, { useState } from 'react';
-import { X, Trophy } from 'lucide-react';
+import { X, Trophy, Plus, Minus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useGameStore } from '@/lib/gameState';
 import PlayerAvatar from './PlayerAvatar';
-import { Player } from '@shared/schema';
+import { Player, WebSocketMessage } from '@shared/schema';
 
-// Create a custom modal component
 // Define the type for our modal props
 interface LeaderboardModalProps {
   isOpen: boolean;
   onClose: () => void;
   players: Player[];
+  isAdmin: boolean;
+  onAdjustScore?: (playerId: number, adjustment: number) => void;
 }
 
 // Create the modal component
-const LeaderboardModal = ({ isOpen, onClose, players }: LeaderboardModalProps) => {
+const LeaderboardModal = ({ isOpen, onClose, players, isAdmin, onAdjustScore }: LeaderboardModalProps) => {
   if (!isOpen) return null;
 
   // Sort players by score in descending order
@@ -87,8 +88,30 @@ const LeaderboardModal = ({ isOpen, onClose, players }: LeaderboardModalProps) =
                       )}
                     </div>
                   </div>
-                  <div className="text-lg font-semibold text-primary">
-                    {player.score} <span className="text-sm text-gray-500">pts</span>
+                  <div className="flex items-center gap-2">
+                    {isAdmin && onAdjustScore && (
+                      <button
+                        onClick={() => onAdjustScore(player.id, -1)}
+                        className="w-6 h-6 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex items-center justify-center transition-colors"
+                        title="Subtract 1 point"
+                        data-testid={`btn-minus-score-${player.id}`}
+                      >
+                        <Minus size={14} />
+                      </button>
+                    )}
+                    <div className="text-lg font-semibold text-primary min-w-[60px] text-center">
+                      {player.score} <span className="text-sm text-gray-500">pts</span>
+                    </div>
+                    {isAdmin && onAdjustScore && (
+                      <button
+                        onClick={() => onAdjustScore(player.id, 1)}
+                        className="w-6 h-6 rounded-full bg-green-100 hover:bg-green-200 text-green-600 flex items-center justify-center transition-colors"
+                        title="Add 1 point"
+                        data-testid={`btn-plus-score-${player.id}`}
+                      >
+                        <Plus size={14} />
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -104,10 +127,29 @@ const LeaderboardModal = ({ isOpen, onClose, players }: LeaderboardModalProps) =
   );
 };
 
-const Leaderboard = () => {
+interface LeaderboardProps {
+  sendMessage?: (message: WebSocketMessage) => void;
+  gameId?: number;
+}
+
+const Leaderboard = ({ sendMessage, gameId }: LeaderboardProps) => {
   const [isOpen, setIsOpen] = useState(false);
-  const { getPlayers } = useGameStore();
+  const { getPlayers, isAdmin } = useGameStore();
   const players = getPlayers();
+  const userIsAdmin = isAdmin();
+
+  const handleAdjustScore = (playerId: number, adjustment: number) => {
+    if (sendMessage && gameId) {
+      sendMessage({
+        type: "adjustScore",
+        payload: {
+          gameId,
+          playerId,
+          adjustment,
+        },
+      });
+    }
+  };
 
   return (
     <>
@@ -116,6 +158,7 @@ const Leaderboard = () => {
         size="sm" 
         className="flex items-center gap-1 bg-primary hover:bg-primary/90 text-white"
         onClick={() => setIsOpen(true)}
+        data-testid="btn-leaderboard"
       >
         <Trophy size={16} />
         <span>Leaderboard</span>
@@ -125,6 +168,8 @@ const Leaderboard = () => {
         isOpen={isOpen} 
         onClose={() => setIsOpen(false)} 
         players={players}
+        isAdmin={userIsAdmin}
+        onAdjustScore={sendMessage && gameId ? handleAdjustScore : undefined}
       />
     </>
   );

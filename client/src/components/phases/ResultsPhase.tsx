@@ -6,6 +6,25 @@ import { WebSocketMessage, Player, Definition, Vote } from "@shared/schema";
 import PlayerAvatar from "../PlayerAvatar";
 import { useGameStore } from "@/lib/gameState";
 
+// Seeded random number generator for deterministic shuffling
+function seededRandom(seed: number): () => number {
+  return function() {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+}
+
+// Deterministic shuffle using a seed (gameId + round)
+function deterministicShuffle<T>(array: T[], seed: number): T[] {
+  const result = [...array];
+  const random = seededRandom(seed);
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 interface ResultsPhaseProps {
   gameId: number;
   currentWord: string;
@@ -34,19 +53,16 @@ const ResultsPhase: React.FC<ResultsPhaseProps> = ({
   // Get correct definition (if any)
   const correctDefinition = definitions.find((def) => def.isCorrect);
   
-  // Shuffle definitions when they change
+  // Shuffle definitions deterministically so everyone sees the same order
   useEffect(() => {
     if (definitions.length > 0) {
-      // Create copy of definitions to shuffle
-      const definitionsCopy = [...definitions];
-      // Fisher-Yates shuffle algorithm
-      for (let i = definitionsCopy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [definitionsCopy[i], definitionsCopy[j]] = [definitionsCopy[j], definitionsCopy[i]];
-      }
-      setShuffledDefinitions(definitionsCopy);
+      // Use gameId + round as seed for deterministic shuffle
+      // This ensures all players see the same order
+      const seed = gameId * 1000 + round;
+      const shuffled = deterministicShuffle(definitions, seed);
+      setShuffledDefinitions(shuffled);
     }
-  }, [definitions]);
+  }, [definitions, gameId, round]);
 
   // Get player name by ID
   const getPlayerName = (playerId: number): string => {

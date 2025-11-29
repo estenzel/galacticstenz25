@@ -106,6 +106,6 @@ export type GameState = {
 }
 
 export type WebSocketMessage = {
-  type: 'join' | 'updatePhase' | 'submitWord' | 'submitDefinition' | 'submitVote' | 'endSubmissions' | 'endVoting' | 'newRound' | 'cancelRound' | 'awardBonus' | 'gameState' | 'playerJoined' | 'removePlayer' | 'error';
+  type: 'join' | 'updatePhase' | 'submitWord' | 'submitDefinition' | 'submitVote' | 'endSubmissions' | 'endVoting' | 'newRound' | 'cancelRound' | 'awardBonus' | 'adjustScore' | 'gameState' | 'playerJoined' | 'removePlayer' | 'error';
   payload?: any;
 }

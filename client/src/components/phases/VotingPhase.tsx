@@ -7,6 +7,25 @@ import PlayerAvatar from "../PlayerAvatar";
 import { Check, Eye } from "lucide-react";
 import { useGameStore } from "@/lib/gameState";
 
+// Seeded random number generator for deterministic shuffling
+function seededRandom(seed: number): () => number {
+  return function() {
+    seed = (seed * 1103515245 + 12345) & 0x7fffffff;
+    return seed / 0x7fffffff;
+  };
+}
+
+// Deterministic shuffle using a seed (gameId + round)
+function deterministicShuffle<T>(array: T[], seed: number): T[] {
+  const result = [...array];
+  const random = seededRandom(seed);
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 interface VotingPhaseProps {
   gameId: number;
   currentWord: string;
@@ -48,19 +67,16 @@ const VotingPhase: React.FC<VotingPhaseProps> = ({
   // Count only non-spectator players for the total
   const totalPlayers = players.filter(player => !player.isSpectator).length;
 
-  // Shuffle definitions when they change
+  // Shuffle definitions deterministically so everyone sees the same order
   useEffect(() => {
     if (definitions.length > 0) {
-      // Create copy of definitions to shuffle
-      const definitionsCopy = [...definitions];
-      // Fisher-Yates shuffle algorithm
-      for (let i = definitionsCopy.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [definitionsCopy[i], definitionsCopy[j]] = [definitionsCopy[j], definitionsCopy[i]];
-      }
-      setShuffledDefinitions(definitionsCopy);
+      // Use gameId + round as seed for deterministic shuffle
+      // This ensures all players see the same order
+      const seed = gameId * 1000 + round;
+      const shuffled = deterministicShuffle(definitions, seed);
+      setShuffledDefinitions(shuffled);
     }
-  }, [definitions]);
+  }, [definitions, gameId, round]);
 
   // Find current player's vote if they've already voted in this round
   useEffect(() => {

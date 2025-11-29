@@ -52,8 +52,8 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
                 return;
               }
               
-              // Try to get existing player info first
-              let player = await storage.getPlayerBySessionId(sessionId);
+              // Try to get existing player info first (for this specific game)
+              let player = await storage.getPlayerBySessionId(sessionId, gameId);
               
               // If player doesn't exist yet, create a new one
               if (!player) {
@@ -106,7 +106,7 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
           case "removePlayer":
             if (gameId && sessionId) {
               // Get current player info (admin)
-              const admin = await storage.getPlayerBySessionId(sessionId);
+              const admin = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!admin) {
                 console.error(`Admin with sessionId ${sessionId} not found for removePlayer`);
@@ -153,7 +153,7 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
           case "submitWord":
             if (gameId && sessionId) {
               // Get current player info
-              const player = await storage.getPlayerBySessionId(sessionId);
+              const player = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!player) {
                 console.error(`Player with sessionId ${sessionId} not found for submitWord`);
@@ -201,7 +201,7 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
           case "submitDefinition":
             if (gameId && sessionId) {
               // Get current player info
-              const player = await storage.getPlayerBySessionId(sessionId);
+              const player = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!player) {
                 console.error(`Player with sessionId ${sessionId} not found for submitDefinition`);
@@ -258,7 +258,7 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
           case "endSubmissions":
             if (gameId && sessionId) {
               // Get current player info
-              const player = await storage.getPlayerBySessionId(sessionId);
+              const player = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!player) {
                 console.error(`Player with sessionId ${sessionId} not found for endSubmissions`);
@@ -295,7 +295,7 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
           case "submitVote":
             if (gameId && sessionId) {
               // Get current player info
-              const player = await storage.getPlayerBySessionId(sessionId);
+              const player = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!player) {
                 console.error(`Player with sessionId ${sessionId} not found for submitVote`);
@@ -351,7 +351,7 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
           case "endVoting":
             if (gameId && sessionId) {
               // Get current player info
-              const player = await storage.getPlayerBySessionId(sessionId);
+              const player = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!player) {
                 console.error(`Player with sessionId ${sessionId} not found for endVoting`);
@@ -427,7 +427,7 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
           case "newRound":
             if (gameId && sessionId) {
               // Get current player info
-              const player = await storage.getPlayerBySessionId(sessionId);
+              const player = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!player) {
                 console.error(`Player with sessionId ${sessionId} not found for newRound`);
@@ -465,7 +465,7 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
           case "cancelRound":
             if (gameId && sessionId) {
               // Get player info
-              const player = await storage.getPlayerBySessionId(sessionId);
+              const player = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!player) {
                 console.error(`Player with sessionId ${sessionId} not found for cancelRound`);
@@ -502,10 +502,84 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
             }
             break;
             
+          case "adjustScore":
+            if (gameId && sessionId) {
+              // Get admin player info
+              const adminPlayer = await storage.getPlayerBySessionId(sessionId, gameId!);
+              
+              if (!adminPlayer) {
+                console.error(`Player with sessionId ${sessionId} not found for adjustScore`);
+                sendMessage(ws, {
+                  type: "error",
+                  payload: { message: "Player not found. Please rejoin the game." }
+                });
+                return;
+              }
+              
+              // Check if admin
+              if (!adminPlayer.isAdmin) {
+                console.error(`Non-admin player ${adminPlayer.name} (ID: ${adminPlayer.id}) attempted to adjust score`);
+                sendMessage(ws, {
+                  type: "error",
+                  payload: { message: "Only admins can adjust player scores." }
+                });
+                return;
+              }
+              
+              // Get the player to adjust and the adjustment amount
+              const targetPlayerId = parsed.payload.playerId;
+              const adjustment = parsed.payload.adjustment;
+              
+              if (!targetPlayerId || adjustment === undefined) {
+                console.error(`Missing playerId or adjustment for adjustScore`);
+                sendMessage(ws, {
+                  type: "error",
+                  payload: { message: "Missing player ID or adjustment amount." }
+                });
+                return;
+              }
+              
+              // Get player to check if they're a spectator
+              const targetPlayer = await storage.getPlayer(targetPlayerId);
+              
+              if (!targetPlayer) {
+                console.error(`Player with ID ${targetPlayerId} not found for adjustScore`);
+                sendMessage(ws, {
+                  type: "error",
+                  payload: { message: "Target player not found." }
+                });
+                return;
+              }
+              
+              // Only adjust points if the player is not a spectator
+              if (targetPlayer.isSpectator) {
+                console.log(`Cannot adjust score for spectator (ID: ${targetPlayerId})`);
+                sendMessage(ws, {
+                  type: "error",
+                  payload: { message: "Cannot adjust scores for spectators." }
+                });
+                return;
+              }
+              
+              console.log(`Admin ${adminPlayer.name} (ID: ${adminPlayer.id}) adjusting score for ${targetPlayer.name} (ID: ${targetPlayerId}) by ${adjustment}`);
+              
+              // Update the player's score
+              await storage.updatePlayerScore(targetPlayerId, adjustment);
+              
+              // Get updated game state
+              const game = await storage.getGame(gameId);
+              const currentRound = game?.currentRound || 1;
+              const gameState = await storage.getGameState(gameId, currentRound);
+              
+              // Broadcast to all players
+              await broadcastGameState(gameId, gameState, storage);
+            }
+            break;
+            
           case "awardBonus":
             if (gameId && sessionId) {
               // Get admin player info
-              const adminPlayer = await storage.getPlayerBySessionId(sessionId);
+              const adminPlayer = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!adminPlayer) {
                 console.error(`Player with sessionId ${sessionId} not found for awardBonus`);
@@ -573,7 +647,7 @@ export function setupWebSocketServer(server: Server, storage: IStorage) {
           case "removePlayer":
             if (gameId && sessionId) {
               // Get admin player info
-              const adminPlayer = await storage.getPlayerBySessionId(sessionId);
+              const adminPlayer = await storage.getPlayerBySessionId(sessionId, gameId!);
               
               if (!adminPlayer) {
                 console.error(`Player with sessionId ${sessionId} not found for removePlayer`);
@@ -719,7 +793,7 @@ async function broadcastGameState(gameId: number, gameState: GameState, storage:
       
       if (connection && connection.readyState === WebSocket.OPEN) {
         // Get this player's personal info to include in their game state
-        const thisPlayer = await storage.getPlayerBySessionId(sessionId);
+        const thisPlayer = await storage.getPlayerBySessionId(sessionId, gameId!);
         
         if (thisPlayer) {
           // Send customized game state with this player's own info

@@ -141,7 +141,7 @@ const Game: React.FC = () => {
             {/* Actions: Leaderboard, Share Links */}
             <div className="flex flex-wrap justify-center items-center gap-3 mt-2">
               {/* Leaderboard Component */}
-              <Leaderboard />
+              <Leaderboard sendMessage={sendMessage} gameId={gameId} />
               
               <Button 
                 variant="outline" 

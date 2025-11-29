@@ -27,7 +27,7 @@ export interface IStorage {
   // Player methods
   createPlayer(player: InsertPlayer): Promise<Player>;
   getPlayer(id: number): Promise<Player | undefined>;
-  getPlayerBySessionId(sessionId: string): Promise<Player | undefined>;
+  getPlayerBySessionId(sessionId: string, gameId?: number): Promise<Player | undefined>;
   getPlayersByGameId(gameId: number): Promise<Player[]>;
   updatePlayerScore(id: number, scoreIncrement: number): Promise<Player>;
   removePlayer(id: number): Promise<void>;
@@ -246,9 +246,9 @@ export class MemStorage implements IStorage {
     return this.players.get(id);
   }
 
-  async getPlayerBySessionId(sessionId: string): Promise<Player | undefined> {
+  async getPlayerBySessionId(sessionId: string, gameId?: number): Promise<Player | undefined> {
     return Array.from(this.players.values()).find(
-      (player) => player.sessionId === sessionId,
+      (player) => player.sessionId === sessionId && (gameId === undefined || player.gameId === gameId),
     );
   }
 
